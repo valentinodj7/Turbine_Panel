@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TURBINE GENERATORS</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #060a08;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  .stage {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel {
+    width: min(980px, 92vw);
+    background: #0a1210;
+    border: 1px solid #1b3a30;
+    border-radius: 6px;
+    padding: 28px 36px;
+    box-shadow: 0 0 60px rgba(0,255,180,0.05), inset 0 0 40px rgba(0,0,0,0.6);
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: #4dffb0; letter-spacing: 3px; font-size: 13px;
+    border-bottom: 1px solid #1b3a30; padding-bottom: 14px; margin-bottom: 22px;
+    text-transform: uppercase;
+  }
+  .turbines-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    margin-bottom: 22px;
+  }
+  .turbine-card {
+    border: 1px solid #1b3a30;
+    border-radius: 4px;
+    padding: 18px 20px;
+    background: #0d1815;
+  }
+  .turbine-title {
+    display: flex; justify-content: space-between; align-items: center;
+    color: #6dffc0; font-size: 15px; letter-spacing: 2px; margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .turbine-status {
+    font-size: 10px; padding: 2px 8px; border-radius: 3px;
+    background: #10201b; color: #4dffb0; letter-spacing: 1px;
+  }
+  .row-flex {
+    display: flex; gap: 18px; align-items: center; margin-bottom: 14px;
+  }
+  .rpm-dial {
+    position: relative; width: 84px; height: 84px; flex-shrink: 0;
+    border-radius: 50%; border: 2px solid #1b3a30;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rpm-dial .tick {
+    position: absolute; width: 2px; height: 6px; background: #1b3a30;
+    top: 2px; left: 50%; transform-origin: 1px 40px;
+  }
+  .rpm-dial .needle {
+    position: absolute; width: 3px; height: 32px; background: #6dffc0;
+    top: 10px; left: 50%; transform-origin: bottom center;
+    box-shadow: 0 0 8px rgba(109,255,192,0.6);
+  }
+  .rpm-dial .center-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #6dffc0;
+    box-shadow: 0 0 6px rgba(109,255,192,0.8);
+  }
+  .rpm-label {
+    position: absolute; bottom: -20px; font-size: 10px; color: #4d7a68; letter-spacing: 1px;
+    width: 100%; text-align: center;
+  }
+  .metrics-col { flex: 1; }
+  .metric-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .metric-row .label { color: #4d7a68; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .metric-row .value { color: #6dffc0; font-size: 20px; font-weight: bold; font-variant-numeric: tabular-nums; text-shadow: 0 0 8px rgba(109,255,192,0.4); }
+  .metric-row .unit { color: #4d7a68; font-size: 11px; margin-left: 4px; }
+  .mini-row {
+    display: flex; justify-content: space-between; font-size: 11px; color: #4d7a68;
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid #16281f;
+  }
+  .mini-row .mval { color: #6dffc0; font-weight: bold; }
+  .bar-wrap {
+    height: 4px; background: #10201b; border-radius: 2px; overflow: hidden; margin-top: 4px;
+  }
+  .bar-fill {
+    height: 100%; background: linear-gradient(90deg, #1d9e75, #6dffc0);
+    width: 50%; transition: width 0.6s ease;
+  }
+  .summary {
+    display: flex; justify-content: space-around;
+    border-top: 1px solid #1b3a30; padding-top: 16px; margin-bottom: 16px;
+  }
+  .summary .item { text-align: center; }
+  .summary .item .label { color: #4d7a68; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  .summary .item .value { color: #6dffc0; font-size: 26px; font-weight: bold; text-shadow: 0 0 10px rgba(109,255,192,0.4); }
+  .footer {
+    display: flex; justify-content: space-between;
+    color: #35594c; font-size: 11px; letter-spacing: 2px;
+  }
+  .pulse {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #4dffb0; margin-right: 8px;
+    animation: pulse 1.6s infinite ease-in-out;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px #4dffb0; }
+    50% { opacity: 0.35; box-shadow: 0 0 2px #4dffb0; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="panel">
+      <div class="header">
+        <span><span class="pulse"></span>TURBINE GENERATORS</span>
+        <span id="clock">00d 00:00:00</span>
+        <span>GRID FREQ <span id="gridFreq">49.6</span> HZ</span>
+      </div>
+
+      <div class="turbines-grid" id="turbinesGrid"></div>
+
+      <div class="summary">
+        <div class="item">
+          <div class="label">Combined output</div>
+          <div class="value"><span id="totalPower">0</span> MW</div>
+        </div>
+        <div class="item">
+          <div class="label">Avg RPM</div>
+          <div class="value" id="avgRpm">0</div>
+        </div>
+        <div class="item">
+          <div class="label">Avg vibration</div>
+          <div class="value" id="avgVib">0</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span>STEAM PRESSURE 62.4 BAR</span>
+        <span>EXHAUST TEMP 38.1&deg;C</span>
+        <span>SYNC LOCK &#10003;</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let t = 0;
+  let startTime = Date.now();
+
+  const turbines = [
+    { name: 'Turbine 01', basePower: 574.2, baseRpm: 2750, baseVib: 1.8 },
+    { name: 'Turbine 02', basePower: 561.6, baseRpm: 2750, baseVib: 2.1 },
+  ];
+
+  function buildCard(tb, i) {
+    const card = document.createElement('div');
+    card.className = 'turbine-card';
+    card.innerHTML = `
+      <div class="turbine-title">
+        <span>${tb.name}</span>
+        <span class="turbine-status">ONLINE</span>
+      </div>
+      <div class="row-flex">
+        <div class="rpm-dial">
+          <div class="needle" id="needle-${i}"></div>
+          <div class="center-dot"></div>
+          <div class="rpm-label"><span id="rpm-${i}">0</span> RPM</div>
+        </div>
+        <div class="metrics-col">
+          <div class="metric-row">
+            <span class="label">Power output</span>
+            <span class="value"><span id="power-${i}">0</span><span class="unit">MW</span></span>
+          </div>
+          <div class="bar-wrap"><div class="bar-fill" id="bar-${i}"></div></div>
+        </div>
+      </div>
+      <div class="mini-row">
+        <span>Vibration <span class="mval" id="vib-${i}">0</span> mm/s</span>
+        <span>Bearing temp <span class="mval" id="btemp-${i}">0</span>&deg;C</span>
+      </div>
+    `;
+    return card;
+  }
+
+  const grid = document.getElementById('turbinesGrid');
+  turbines.forEach((tb, i) => grid.appendChild(buildCard(tb, i)));
+
+  function fmt(n, d) { return n.toFixed(d); }
+
+  // smooth slow oscillation based on real elapsed seconds, period in seconds
+  function wobble(base, amp, periodSeconds, phase) {
+    const elapsedSec = (Date.now() - startTime) / 1000;
+    return base + Math.sin((2 * Math.PI * elapsedSec / periodSeconds) + phase) * amp;
+  }
+
+  function updateClock() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const days = Math.floor(elapsed / 86400) + 144;
+    const hrs = Math.floor((elapsed % 86400) / 3600).toString().padStart(2, '0');
+    const mins = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+    const secs = (elapsed % 60).toString().padStart(2, '0');
+    document.getElementById('clock').textContent = `${days}d ${hrs}:${mins}:${secs}`;
+  }
+
+  function tick() {
+    let totalPower = 0, totalRpm = 0, totalVib = 0;
+
+    turbines.forEach((tb, i) => {
+      const power = wobble(tb.basePower, 12, 300, i * 2);
+      const rpm = wobble(tb.baseRpm, 250, 300, i * 2);
+      const vib = Math.max(0.2, wobble(tb.baseVib, 0.4, 240, i * 2 + 1));
+      const btemp = wobble(64 + i * 2, 3, 260, i * 2 + 2);
+
+      totalPower += power;
+      totalRpm += rpm;
+      totalVib += vib;
+
+      document.getElementById('power-' + i).textContent = fmt(power, 1);
+      document.getElementById('rpm-' + i).textContent = Math.round(rpm);
+      document.getElementById('vib-' + i).textContent = fmt(vib, 2);
+      document.getElementById('btemp-' + i).textContent = fmt(btemp, 1);
+      document.getElementById('bar-' + i).style.width = Math.min(100, (power / 650) * 100) + '%';
+
+      const angle = ((rpm - tb.baseRpm) / 250) * 55;
+      document.getElementById('needle-' + i).style.transform = `rotate(${angle}deg)`;
+    });
+
+    document.getElementById('totalPower').textContent = fmt(totalPower, 1);
+    document.getElementById('avgRpm').textContent = Math.round(totalRpm / turbines.length);
+    document.getElementById('avgVib').textContent = fmt(totalVib / turbines.length, 2);
+
+    const freq = wobble(49.6, 0.15, 120, 5);
+    document.getElementById('gridFreq').textContent = fmt(freq, 1);
+
+    updateClock();
+    requestAnimationFrame(tick);
+  }
+
+  tick();
+</script>
+</body>
+</html>
